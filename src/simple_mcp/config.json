@@ -1,0 +1,27 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        ".",
+        "/tmp"
+      ]
+    },
+    "sequential-thinking": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "@modelcontextprotocol/server-sequential-thinking"
+        ]
+      },
+      "notionApi": {
+        "command": "npx",
+        "args": ["-y", "@notionhq/notion-mcp-server"],
+        "env": {
+          "OPENAPI_MCP_HEADERS": "{\"Authorization\": \"notion-api-key\", \"Notion-Version\": \"2022-06-28\" }"
+        }
+      }
+  }
+} 
