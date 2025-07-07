@@ -156,6 +156,7 @@ class MCPAgentDemo:
         
         agent = Agent(
             name="MCP Assistant",
+            model="gpt-4o-mini",
             instructions=instructions,
             mcp_servers=self.mcp_servers
         )
