@@ -18,7 +18,7 @@ import os
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Sequence, cast
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -30,7 +30,7 @@ if not os.getenv("OPENAI_API_KEY"):
     sys.exit(1)
 
 from agents import Agent, Runner
-from agents.mcp import MCPServerStdio
+from agents.mcp import MCPServerStdio, MCPServer
 
 
 class ChatSession:
@@ -63,7 +63,7 @@ class ChatSession:
         
         return "\n".join(context_lines)
     
-    def save_history(self, filepath: str = None):
+    def save_history(self, filepath: Optional[str] = None):
         """Save conversation history to file."""
         if not filepath:
             filepath = f"chat_history_{self.session_id}.json"
@@ -83,11 +83,11 @@ class MCPAgentDemo:
     
     def __init__(self, config_path: str = "config.json"):
         self.config_path = config_path
-        self.mcp_servers: List[MCPServerStdio] = []
+        self.mcp_servers: Sequence[MCPServerStdio] = []
         self.agent: Optional[Agent] = None
         self.chat_session = ChatSession()
     
-    async def load_mcp_servers(self) -> List[MCPServerStdio]:
+    async def load_mcp_servers(self) -> Sequence[MCPServerStdio]:
         """Load and initialize MCP servers from JSON configuration."""
         config_file = Path(self.config_path)
         
@@ -158,7 +158,7 @@ class MCPAgentDemo:
             name="MCP Assistant",
             model="gpt-4o-mini",
             instructions=instructions,
-            mcp_servers=self.mcp_servers
+            mcp_servers=cast(List[MCPServer], self.mcp_servers)
         )
         
         return agent
