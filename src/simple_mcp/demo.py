@@ -18,7 +18,7 @@ import os
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Sequence, cast
+from typing import Dict, List, Optional, Tuple, Sequence, cast, Any
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -31,6 +31,7 @@ if not os.getenv("OPENAI_API_KEY"):
 
 from agents import Agent, Runner
 from agents.mcp import MCPServerStdio, MCPServer
+from agents.mcp.server import MCPServerStdioParams
 
 
 class ChatSession:
@@ -108,11 +109,30 @@ class MCPAgentDemo:
                 try:
                     print(f"  📡 Initializing {server_name}...")
                     
+                    # Handle environment variables that contain JSON
+                    server_params: MCPServerStdioParams = {
+                        "command": server_config["command"],
+                        "args": server_config["args"]
+                    }
+                    
+                    if "env" in server_config:
+                        server_params["env"] = {}
+                        for key, value in server_config["env"].items():
+                            # If the value is a JSON string, ensure it's properly escaped
+                            if key == "OPENAPI_MCP_HEADERS" and isinstance(value, str):
+                                try:
+                                    # Parse the JSON string to ensure it's valid
+                                    headers = json.loads(value)
+                                    # Re-encode with proper escaping
+                                    server_params["env"][key] = json.dumps(headers)
+                                except json.JSONDecodeError:
+                                    # If it's not valid JSON, use as is
+                                    server_params["env"][key] = value
+                            else:
+                                server_params["env"][key] = value
+                    
                     server = await MCPServerStdio(
-                        params={
-                            "command": server_config["command"],
-                            "args": server_config["args"]
-                        },
+                        params=server_params,
                         cache_tools_list=True
                     ).__aenter__()  # Use async context manager
                     
