@@ -16,6 +16,7 @@ import asyncio
 import json
 import os
 import sys
+from contextlib import AsyncExitStack
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Sequence, cast, Any
@@ -79,6 +80,11 @@ class ChatSession:
         print(f"💾 Chat history saved to {filepath}")
 
 
+class ChatExit(Exception):
+    """Custom exception for chat exit."""
+    def __init__(self, message: str):
+        super().__init__(message)
+
 class MCPAgentDemo:
     """Main demo class for MCP-enabled OpenAI agent."""
     
@@ -87,6 +93,7 @@ class MCPAgentDemo:
         self.mcp_servers: Sequence[MCPServerStdio] = []
         self.agent: Optional[Agent] = None
         self.chat_session = ChatSession()
+        self._shutting_down = False
     
     async def load_mcp_servers(self) -> Sequence[MCPServerStdio]:
         """Load and initialize MCP servers from JSON configuration."""
@@ -131,10 +138,11 @@ class MCPAgentDemo:
                             else:
                                 server_params["env"][key] = value
                     
-                    server = await MCPServerStdio(
+                    # Create server instance
+                    server = MCPServerStdio(
                         params=server_params,
                         cache_tools_list=True
-                    ).__aenter__()  # Use async context manager
+                    )
                     
                     servers.append(server)
                     print(f"  ✅ {server_name} server ready")
@@ -152,11 +160,19 @@ class MCPAgentDemo:
     
     async def cleanup_servers(self):
         """Cleanup MCP servers properly."""
+        # This method is now only used for error handling
+        if not self.mcp_servers:
+            return
+            
+        print("\n🔧 Cleaning up servers...")
         for server in self.mcp_servers:
             try:
-                await server.__aexit__(None, None, None)
+                await server.cleanup()
             except Exception as e:
                 print(f"❌ Error cleaning up server: {e}")
+        
+        self.mcp_servers = []
+        print("✅ Cleanup complete")
     
     async def create_agent(self) -> Agent:
         """Create the OpenAI agent with MCP servers and memory context."""
@@ -260,8 +276,12 @@ class MCPAgentDemo:
             return "\n".join(tools_info)
         
         elif cmd in ['/quit', '/exit']:
-            print("👋 Goodbye! Have a great day!")
-            sys.exit(0)
+            if not self._shutting_down:
+                self._shutting_down = True
+                print("👋 Goodbye! Have a great day!")
+                response = "Exiting chat..."
+                raise ChatExit(response)
+            return "Already shutting down..."
         
         else:
             return f"❓ Unknown command: {command}. Type `/help` for available commands."
@@ -297,6 +317,11 @@ class MCPAgentDemo:
                 # Display response
                 print(f"🤖 Assistant: {response}")
                 
+            # except ChatExit as e:
+            #     # Save conversation before exit
+            #     if self.chat_session.history:
+            #         self.chat_session.save_history()
+            #     break
             except KeyboardInterrupt:
                 print("\n\n👋 Chat interrupted. Goodbye!")
                 break
@@ -305,21 +330,27 @@ class MCPAgentDemo:
                 break
             except Exception as e:
                 print(f"\n💥 Unexpected error: {e}")
+                if self._shutting_down:
+                    break
                 continue
-        
-        # Save conversation before exit
-        if self.chat_session.history:
-            self.chat_session.save_history()
     
     async def run(self):
         """Initialize and run the demo."""
-        # Load MCP servers
+        # Load MCP server configurations
         self.mcp_servers = await self.load_mcp_servers()
         
-        try:
-            await self.interactive_chat()
-        finally:
-            await self.cleanup_servers()
+        # Use async context managers to properly handle server lifecycles
+        async with AsyncExitStack() as stack:
+            # Enter each server's context
+            for server in self.mcp_servers:
+                await stack.enter_async_context(server)
+            
+            try:
+                await self.interactive_chat()
+            except Exception as e:
+                if not isinstance(e, ChatExit):
+                    print(f"\n💥 Unexpected error during chat: {e}")
+                # Let the async context manager handle cleanup
 
 
 async def main():
@@ -329,14 +360,16 @@ async def main():
     os.chdir(script_dir)
     
     demo = MCPAgentDemo()
-    await demo.run()
+    
+    try:
+        await demo.run()
+    except (KeyboardInterrupt, EOFError):
+        print("\n👋 Demo stopped by user")
+    except Exception as e:
+        if not isinstance(e, ChatExit):
+            print(f"💥 Fatal error: {e}")
+            sys.exit(1)
 
 
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        print("\n👋 Demo stopped by user")
-    except Exception as e:
-        print(f"💥 Fatal error: {e}")
-        sys.exit(1) 
+    asyncio.run(main()) 
