@@ -317,11 +317,13 @@ class MCPAgentDemo:
                 # Display response
                 print(f"🤖 Assistant: {response}")
                 
-            # except ChatExit as e:
-            #     # Save conversation before exit
-            #     if self.chat_session.history:
-            #         self.chat_session.save_history()
-            #     break
+            except ChatExit as e:
+                # Save conversation before exit
+                print("\n\n👋 Chat ended. Goodbye!")
+                break
+                # if self.chat_session.history:
+                #     self.chat_session.save_history()
+                # break
             except KeyboardInterrupt:
                 print("\n\n👋 Chat interrupted. Goodbye!")
                 break
