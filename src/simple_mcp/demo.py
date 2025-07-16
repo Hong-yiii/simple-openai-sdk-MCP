@@ -66,21 +66,55 @@ class ChatSession:
             }
         }
         
+        # Track current tool call to match with its output
+        current_tool_call = None
+        
         # Process each item in the run result
         for item in result.new_items:
-            if hasattr(item, 'type'):
-                if item.type == 'tool_call_item':
-                    tool_call = {
-                        "tool": item.tool.name,
-                        "args": item.args,
-                        "timestamp": datetime.now().isoformat()
-                    }
-                    debug_entry["tool_calls"].append(tool_call)
-                elif item.type == 'tool_call_output_item':
-                    # Find the last tool call and add its output
-                    if debug_entry["tool_calls"]:
-                        debug_entry["tool_calls"][-1]["output"] = item.output
-                        debug_entry["tool_calls"][-1]["output_timestamp"] = datetime.now().isoformat()
+            if not hasattr(item, 'type'):
+                continue
+                
+            if item.type == 'tool_call_item':
+                # Extract tool call information
+                tool_name = 'unknown'
+                arguments = {}
+                
+                if hasattr(item.raw_item, 'function'):
+                    if hasattr(item.raw_item.function, 'name'):
+                        tool_name = item.raw_item.function.name
+                    if hasattr(item.raw_item.function, 'arguments'):
+                        try:
+                            arguments = json.loads(item.raw_item.function.arguments) if isinstance(item.raw_item.function.arguments, str) else item.raw_item.function.arguments or {}
+                        except (json.JSONDecodeError, TypeError):
+                            arguments = {"raw_arguments": str(item.raw_item.function.arguments)}
+                elif hasattr(item.raw_item, 'name'):
+                    tool_name = item.raw_item.name
+                    if hasattr(item.raw_item, 'arguments'):
+                        try:
+                            arguments = json.loads(item.raw_item.arguments) if isinstance(item.raw_item.arguments, str) else item.raw_item.arguments or {}
+                        except (json.JSONDecodeError, TypeError):
+                            arguments = {"raw_arguments": str(item.raw_item.arguments)}
+                
+                current_tool_call = {
+                    "tool": tool_name,
+                    "args": arguments,
+                    "call_timestamp": datetime.now().isoformat()
+                }
+                debug_entry["tool_calls"].append(current_tool_call)
+                
+            elif item.type == 'tool_call_output_item':
+                # Extract tool output
+                if current_tool_call:
+                    output_str = ""
+                    if hasattr(item, 'output') and item.output:
+                        output_str = str(item.output)
+                    elif hasattr(item.raw_item, 'output'):
+                        raw_output = item.raw_item['output'] if isinstance(item.raw_item, dict) else item.raw_item.output
+                        output_str = str(raw_output)
+                    
+                    current_tool_call["output"] = output_str
+                    current_tool_call["output_timestamp"] = datetime.now().isoformat()
+                    current_tool_call = None
         
         self.debug_history.append(debug_entry)
     
