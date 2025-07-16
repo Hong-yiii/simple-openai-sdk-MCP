@@ -2,3 +2,5 @@
 .env
 .env.*
 __pycache__/
+src/simple_mcp/__pycache__/
+src/simple_mcp.egg-info/
