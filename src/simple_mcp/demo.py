@@ -33,7 +33,7 @@ if not os.getenv("OPENAI_API_KEY"):
 from agents import Agent, Runner
 from agents.mcp import MCPServerStdio, MCPServer
 from agents.mcp.server import MCPServerStdioParams
-from simple_mcp.prompts import get_holiday_planner_prompt  # Changed to absolute import
+from simple_mcp.prompts import get_prompt  # Changed to absolute import
 
 
 class ChatSession:
@@ -259,7 +259,7 @@ class MCPAgentDemo:
         """Create the OpenAI agent with MCP servers and memory context."""
         
         # Get the base prompt
-        base_instructions = get_holiday_planner_prompt()
+        base_instructions = get_prompt()
         
         # Add conversation context if available
         context_summary = self.chat_session.get_context_summary()

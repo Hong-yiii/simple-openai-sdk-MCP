@@ -6,3 +6,4 @@ src/simple_mcp/__pycache__/
 src/simple_mcp.egg-info/
 .DS_Store
 *.egg-info/
+oauth.keys.json

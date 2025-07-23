@@ -6,7 +6,7 @@ import os
 from typing import Optional
 from datetime import datetime
 
-def get_holiday_planner_prompt() -> str:
+def get_prompt() -> str:
     """
     Generate the holiday planner prompt with proper variable substitution.
     
