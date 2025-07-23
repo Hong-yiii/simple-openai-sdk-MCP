@@ -1,13 +1,5 @@
 {
   "mcpServers": {
-    "filesystem": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-filesystem",
-        "."
-      ]
-    },
     "sequential-thinking": {
         "command": "npx",
         "args": [
@@ -15,11 +7,23 @@
           "@modelcontextprotocol/server-sequential-thinking"
         ]
       },
-      "notionApi": {
+      "airbnb": {
         "command": "npx",
-        "args": ["-y", "@notionhq/notion-mcp-server"],
+        "args": [
+          "-y",
+          "@openbnb/mcp-server-airbnb",
+          "--ignore-robots-txt"
+        ]
+      },
+      "wikipedia": {
+        "command": "wikipedia-mcp",
+        "args": ["--transport", "stdio", "--language", "en"]
+      },
+      "google-calendar": {
+        "command": "npx",
+        "args": ["@cocal/google-calendar-mcp"],
         "env": {
-          "OPENAPI_MCP_HEADERS": "{\"Authorization\": \"notion-api-key\", \"Notion-Version\": \"2022-06-28\" }"
+          "GOOGLE_OAUTH_CREDENTIALS": "/path/to/your/gcp-oauth.keys.json"
         }
       }
   }

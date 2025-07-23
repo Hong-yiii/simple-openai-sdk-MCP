@@ -10,6 +10,8 @@ The OpenAI Agents SDK provides a lightweight framework for building AI applicati
 
 Model Context Protocol (MCP) is a standardized way for AI models to interact with external tools and services. It provides a consistent interface for tools to expose their functionality to AI models, making it easier to extend AI capabilities without changing the core model.
 
+Use `npx @modelcontextprotocol/inspector --config path/to/config.json --server everything` to debug endpoints, the performance of the model is largely affected by the MCP endpoint and how its structured
+
 ## 🎯 Project Purpose
 
 This repository demonstrates:
