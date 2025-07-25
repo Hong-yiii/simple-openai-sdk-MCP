@@ -26,10 +26,21 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
-# 🚀 CONFIGURATION FLAG - Change this to switch between OpenAI and Amazon Nova
-USE_NOVA = True  # Set to True to use Amazon Nova Lite via AWS Bedrock
+# 🚀 CONFIGURATION FLAGS - Change these to switch between different models
+USE_NOVA = True    # Set to True to use Amazon Nova Lite via AWS Bedrock
+USE_GEMINI = False # Set to True to use Google's Gemini Pro
+USE_CLAUDE = False # Set to True to use Anthropic's Claude
+USE_OPENAI = False # Set to True to use OpenAI's GPT-4o-mini
 
-# Import Nova integration if enabled
+# Ensure only one model is enabled
+if sum([USE_NOVA, USE_GEMINI, USE_CLAUDE]) > 1:
+    print("❌ Error: Please enable only one model at a time!")
+    sys.exit(1)
+elif sum([USE_NOVA, USE_GEMINI, USE_CLAUDE]) == 0:
+    print("❌ Error: Please enable at least one model!")
+    sys.exit(1)
+
+# Import model integrations based on flags
 if USE_NOVA:
     from simple_mcp.nova_integration import validate_nova_setup
     print("🔄 Nova mode enabled - validating AWS setup...")
@@ -38,13 +49,38 @@ if USE_NOVA:
         print("❌ Nova setup failed. Please check your AWS credentials in .env file.")
         print("Required variables: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION_NAME")
         sys.exit(1)
-else:
-    # Verify OpenAI API key is available for standard mode
-    if not os.getenv("OPENAI_API_KEY"):
-        print("❌ Error: OPENAI_API_KEY environment variable not set!")
-        print("💡 Tip: Set USE_NOVA = True to use Amazon Nova instead")
+    model_integration = nova_integration
+elif USE_GEMINI:
+    from simple_mcp.gemini_integration import validate_gemini_setup
+    print("🔄 Gemini mode enabled - validating Google API setup...")
+    gemini_valid, gemini_integration = validate_gemini_setup()
+    if not gemini_valid:
+        print("❌ Gemini setup failed. Please check your Google API key in .env file.")
+        print("Required variables: GOOGLE_API_KEY")
         sys.exit(1)
-    nova_integration = None
+    model_integration = gemini_integration
+elif USE_CLAUDE:
+    from simple_mcp.claude_integration import validate_claude_setup
+    print("🔄 Claude mode enabled - validating Anthropic setup...")
+    claude_valid, claude_integration = validate_claude_setup()
+    if not claude_valid:
+        print("❌ Claude setup failed. Please check your Anthropic API key in .env file.")
+        print("Required variables: ANTHROPIC_API_KEY")
+        sys.exit(1)
+    model_integration = claude_integration
+elif USE_OPENAI:
+    from simple_mcp.openai_integration import validate_openai_setup
+    print("🔄 OpenAI mode enabled - validating OpenAI setup...")
+    openai_valid, openai_integration = validate_openai_setup()
+    if not openai_valid:
+        print("❌ OpenAI setup failed. Please check your OpenAI API key in .env file.")
+        print("Required variables: OPENAI_API_KEY")
+        sys.exit(1)
+    model_integration = openai_integration
+else:
+    # This case shouldn't be reached due to earlier check
+    print("❌ No model selected!")
+    sys.exit(1)
 
 from agents import Agent, Runner
 from agents.mcp import MCPServerStdio, MCPServer
@@ -284,31 +320,23 @@ class MCPAgentDemo:
         else:
             instructions = base_instructions
         
-        # Determine model and configuration based on USE_NOVA flag
-        if USE_NOVA and nova_integration:
-            # Use Amazon Nova Lite via LiteLLM
-            nova_model = nova_integration.get_nova_model()
+        # Create agent based on selected model
+        if model_integration:
+            # Get model configuration from the integration
+            model = model_integration.get_model()
             
             # Print integration info
-            nova_integration.print_integration_info()
+            model_integration.print_integration_info()
             
             agent = Agent(
                 name="Test Agent",
-                model=nova_model,
+                model=model,
                 instructions=instructions,
                 mcp_servers=cast(List[MCPServer], self.mcp_servers)
             )
-
-        # you may define other agent providers here, such as OpenAI, Anthropic, etc.
-        
         else:
-            # Use standard OpenAI
-            agent = Agent(
-                name="Test Agent",
-                model="gpt-4o-mini",
-                instructions=instructions,
-                mcp_servers=cast(List[MCPServer], self.mcp_servers)
-            )
+            # This case shouldn't be reached due to earlier validation
+            raise RuntimeError("No model integration available!")
         
         return agent
     
