@@ -47,14 +47,31 @@ This repository demonstrates:
 
 ## 📦 Quick Start
 
-1. Clone and setup:
+1. Clone the repository:
 ```bash
 git clone [repository-url]
 cd simple_mcp
-pip install -e .
 ```
 
-2. Set up your environment variables in `.env`:
+2. Create and activate a virtual environment using `uv`:
+```bash
+uv venv
+source .venv/bin/activate  # On Unix/macOS
+# or
+.venv\Scripts\activate     # On Windows
+```
+
+3. Install the package in development mode:
+```bash
+uv pip install -e .
+```
+
+4. Install required MCP tools:
+```bash
+npm install -g @modelcontextprotocol/server-filesystem @modelcontextprotocol/inspector
+```
+
+5. Set up your environment variables in `.env`:
 ```bash
 # For Amazon Nova
 AWS_ACCESS_KEY_ID=your_aws_key
@@ -71,7 +88,7 @@ ANTHROPIC_API_KEY=your_anthropic_api_key
 OPENAI_API_KEY=your_openai_api_key
 ```
 
-3. Configure your desired model in `src/simple_mcp/demo.py`:
+6. Configure your desired model in `src/simple_mcp/demo.py`:
 ```python
 # Choose ONE model to enable
 USE_NOVA = True     # Amazon Nova
@@ -80,8 +97,12 @@ USE_CLAUDE = False  # Anthropic Claude
 USE_OPENAI = False  # OpenAI GPT-4o-mini
 ```
 
-4. Run the demo:
+7. Run the demo:
 ```bash
+# Run as a module (recommended)
+python -m simple_mcp.demo
+
+# Or run directly (alternative)
 cd src/simple_mcp
 python demo.py
 ```
@@ -90,15 +111,16 @@ python demo.py
 
 ```
 simple_mcp/
-├── src/
-│   ├── setup.py                 # Package configuration
-│   └── simple_mcp/
-│       ├── config.json         # MCP server configuration
-│       ├── demo.py            # Interactive demo with MCP tools
-│       ├── nova_integration.py    # Amazon Nova integration
-│       ├── gemini_integration.py  # Google Gemini integration
-│       ├── claude_integration.py  # Anthropic Claude integration
-│       └── openai_integration.py  # OpenAI integration
+├── pyproject.toml           # Project metadata and dependencies
+├── .gitignore              # Git ignore patterns
+└── src/
+    └── simple_mcp/
+        ├── config.json     # MCP server configuration
+        ├── demo.py         # Interactive demo with MCP tools
+        ├── nova_integration.py    # Amazon Nova integration
+        ├── gemini_integration.py  # Google Gemini integration
+        ├── claude_integration.py  # Anthropic Claude integration
+        └── openai_integration.py  # OpenAI integration
 ```
 
 ## ⚙️ How It Works
@@ -128,14 +150,22 @@ simple_mcp/
 
 ## 🔒 Dependencies
 
+Core dependencies:
 - `litellm>=1.0.0` - Universal LLM interface
+- `openai-agents>=0.2.3` - OpenAI Agents framework
+- `mcp>=1.12.2` - Model Context Protocol
 - `httpx>=0.24.0` - HTTP client library
-- Various MCP server packages (installed via npx)
+
+Provider-specific:
+- `boto3>=1.28.0` - For AWS Bedrock/Nova
+- `anthropic>=0.7.0` - For Claude
+- `google-ai-generativelanguage>=0.4.0` - For Gemini
 
 ## 📖 Learn More
 
 - [Model Context Protocol](https://modelcontextprotocol.io/)
 - [LiteLLM Documentation](https://docs.litellm.ai/)
+- [Native integration of litellm into OpenAI Agents framework](https://openai.github.io/openai-agents-python/models/litellm/)
 - [AWS Bedrock Documentation](https://aws.amazon.com/bedrock/)
 - [Google AI Documentation](https://ai.google.dev/)
 - [Anthropic Documentation](https://docs.anthropic.com/)
@@ -144,7 +174,3 @@ simple_mcp/
 ## 🛠️ Development Status
 
 This project is a minimal demonstration and is currently in Beta status. It supports Python versions 3.8 through 3.12.
-
-## 📄 License
-
-[Add license information here]
