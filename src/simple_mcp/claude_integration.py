@@ -35,7 +35,7 @@ class ClaudeIntegration:
         Returns:
             str: Model identifier for LiteLLM
         """
-        return f"claude/{self.model_name}"
+        return f"litellm/claude/{self.model_name}"
     
     def print_integration_info(self) -> None:
         """Print information about the Claude integration."""

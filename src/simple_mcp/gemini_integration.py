@@ -35,7 +35,7 @@ class GeminiIntegration:
         Returns:
             str: Model identifier for LiteLLM
         """
-        return f"gemini/{self.model_name}"
+        return f"litellm/gemini/{self.model_name}"
     
     def print_integration_info(self) -> None:
         """Print information about the Gemini integration."""

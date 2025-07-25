@@ -44,7 +44,7 @@ class NovaIntegration:
         Returns:
             str: Model identifier for LiteLLM
         """
-        return f"bedrock/{self.model_name}"
+        return f"litellm/bedrock/{self.model_name}"
     
     def print_integration_info(self) -> None:
         """Print information about the Nova integration."""
