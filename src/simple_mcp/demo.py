@@ -6,6 +6,7 @@ This script demonstrates a complete OpenAI agent setup with:
 - JSON-based MCP server configuration (Claude Desktop style)
 - Interactive chat interface with memory
 - Multiple MCP servers for filesystem, git, sqlite, and time operations
+- Support for Amazon Nova models via LiteLLM integration
 
 Usage:
     cd src/simple_mcp
@@ -25,10 +26,25 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
-# Verify OpenAI API key is available
-if not os.getenv("OPENAI_API_KEY"):
-    print("❌ Error: OPENAI_API_KEY environment variable not set!")
-    sys.exit(1)
+# 🚀 CONFIGURATION FLAG - Change this to switch between OpenAI and Amazon Nova
+USE_NOVA = True  # Set to True to use Amazon Nova Lite via AWS Bedrock
+
+# Import Nova integration if enabled
+if USE_NOVA:
+    from simple_mcp.nova_integration import validate_nova_setup
+    print("🔄 Nova mode enabled - validating AWS setup...")
+    nova_valid, nova_integration = validate_nova_setup()
+    if not nova_valid:
+        print("❌ Nova setup failed. Please check your AWS credentials in .env file.")
+        print("Required variables: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION_NAME")
+        sys.exit(1)
+else:
+    # Verify OpenAI API key is available for standard mode
+    if not os.getenv("OPENAI_API_KEY"):
+        print("❌ Error: OPENAI_API_KEY environment variable not set!")
+        print("💡 Tip: Set USE_NOVA = True to use Amazon Nova instead")
+        sys.exit(1)
+    nova_integration = None
 
 from agents import Agent, Runner
 from agents.mcp import MCPServerStdio, MCPServer
@@ -256,7 +272,7 @@ class MCPAgentDemo:
         print("✅ Cleanup complete")
     
     async def create_agent(self) -> Agent:
-        """Create the OpenAI agent with MCP servers and memory context."""
+        """Create the agent with MCP servers and memory context."""
         
         # Get the base prompt
         base_instructions = get_prompt()
@@ -268,12 +284,31 @@ class MCPAgentDemo:
         else:
             instructions = base_instructions
         
-        agent = Agent(
-            name="HolidayPlanner-v1",
-            model="gpt-4o-mini",
-            instructions=instructions,
-            mcp_servers=cast(List[MCPServer], self.mcp_servers)
-        )
+        # Determine model and configuration based on USE_NOVA flag
+        if USE_NOVA and nova_integration:
+            # Use Amazon Nova Lite via LiteLLM
+            nova_model = nova_integration.get_nova_model()
+            
+            # Print integration info
+            nova_integration.print_integration_info()
+            
+            agent = Agent(
+                name="Test Agent",
+                model=nova_model,
+                instructions=instructions,
+                mcp_servers=cast(List[MCPServer], self.mcp_servers)
+            )
+
+        # you may define other agent providers here, such as OpenAI, Anthropic, etc.
+        
+        else:
+            # Use standard OpenAI
+            agent = Agent(
+                name="Test Agent",
+                model="gpt-4o-mini",
+                instructions=instructions,
+                mcp_servers=cast(List[MCPServer], self.mcp_servers)
+            )
         
         return agent
     
@@ -320,7 +355,8 @@ class MCPAgentDemo:
         cmd = command.lower().strip()
         
         if cmd == '/help':
-            return """
+            provider_status = "🚀 Amazon Nova (AWS Bedrock)" if USE_NOVA else "🤖 OpenAI"
+            return f"""
 🤖 **Available Commands:**
 • `/help` - Show this help message
 • `/clear` - Clear conversation history
@@ -330,6 +366,9 @@ class MCPAgentDemo:
 • `/tools` - List available MCP tools
 • `/quit` or `/exit` - Exit the chat
 • Any other message - Chat with the assistant
+
+**Current Provider:** {provider_status}
+**💡 Tip:** Change USE_NOVA flag in demo.py to switch providers
             """.strip()
         
         elif cmd == '/clear':
@@ -383,11 +422,15 @@ class MCPAgentDemo:
     
     def print_welcome(self):
         """Print welcome message and status."""
-        print("🚀 OpenAI Agent with MCP Tools - Interactive Chat")
+        provider_info = "🤖 Amazon Nova (AWS Bedrock)" if USE_NOVA else "🤖 OpenAI"
+        model_info = "amazon.nova-lite-v1:0" if USE_NOVA else "gpt-4o-mini"
+        
+        print("🚀 AI Agent with MCP Tools - Interactive Chat")
         print("=" * 55)
         print(f"📂 Config: {self.config_path}")
         print(f"🔗 MCP Servers: {len(self.mcp_servers)} loaded")
         print(f"🧠 Memory: {self.chat_session.max_history} exchanges")
+        print(f"{provider_info} | Model: {model_info}")
         print("\n💡 Type '/help' for commands or just start chatting!")
         print("🎯 Example: 'List files in current directory' or 'What's the current time?'")
         print("-" * 55)

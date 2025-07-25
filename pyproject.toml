@@ -6,11 +6,13 @@ authors = [{ name = "Your Name", email = "you@example.com" }]
 requires-python = ">=3.8"
 dependencies = [
     "openai-agents>=0.1.0",
+    "litellm>=1.0.0",
     "httpx>=0.24.0",
     "python-dotenv>=1.0.0",
     "python-multipart>=0.0.9",
     "python-dateutil>=2.8.2",
-    "wikipedia-mcp==1.5.2"
+    "wikipedia-mcp==1.5.2",
+    "boto3>=1.28.57"
 ]
 
 [tool.setuptools]
